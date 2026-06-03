@@ -12,7 +12,7 @@
 
 **Stratified Disparity** is a fairness metric for link prediction. Instead of evaluating group disparity only at the aggregate level, it measures how disparity changes after stratifying nodes or edges by structural or attribute-based factors such as degree, community, homophily, or learned representations.
 
-The goal is to detect cases where aggregate fairness metrics hide important within-stratum disparities, including Simpson's-paradox effects.
+The goal is to detect cases where aggregate fairness metrics hide important within-stratum disparities, including Simpson's paradox effects.
 
 ## Table of Contents
 
@@ -32,7 +32,7 @@ The goal is to detect cases where aggregate fairness metrics hide important with
 
 ## Overview
 
-This repository is the official implementation of **Stratified Disparity**.
+This repository is the official implementation of **Stratified Disparity**, introduced in our paper **“A Stratified Analysis of Link Prediction Fairness.”**
 
 It provides a reusable Python toolkit for computing Stratified Disparity from link prediction outputs, protected attributes, and stratification variables. The package supports the full analysis workflow, including binning, within-bin disparity computation, Stratified Disparity Curve construction, elbow-point selection, and visualization.
 
@@ -45,7 +45,7 @@ The repository includes:
 * Example scripts for applying the metric to custom networks and link prediction results.
 
 
-The experiments from the paper **“A Stratified Analysis of Link Prediction Fairness”** are provided separately under the [`experiments/`](experiments/) directory.
+The experiments from the paper are provided separately under the [`experiments/`](experiments/) directory.
 
 If you use this code or results in your work, please cite our paper. See the [Citation](#citation) section below.
 
@@ -275,7 +275,8 @@ stratified-disparity/
 ├── figures/                    # Generated figures
 ├── results/                    # Output tables and curves
 ├── scripts/                    # Plotting and utility scripts
-├── slides/                     # presentation slides
+├── slides/                     # Presentation slides
+├── stratified-disparity-iscs2026.pdf # Paper
 ├── stratified_disparity/       # Source code
 │   ├── __init__.py
 │   ├── metric.py
@@ -292,7 +293,7 @@ stratified-disparity/
 
 We provide the slides for the ISCS 2026 oral presentation in the `slides/` directory.
 
-- [ISCS 2026 Oral Presentation Slides (PDF)](slides/ISCS_2026_presentation.pdf)
+- [ISCS 2026 Oral Presentation Slides (PDF)](slides/ISCS_2026_Oral_Presentation_Slides.pdf)
 
 The slides give a concise overview of the motivation, Stratified Disparity metric, experimental setup, and major findings. They are intended as a high-level summary of the paper and can be used together with the code and reproduced results in this repository.
 
@@ -311,7 +312,7 @@ If you use this repository, please cite:
 
 ## Maintainers
 
-- [Weixiang Wang](https://github.com/wwang69)
+- [Weixiang Wang](https://github.com/Oakwoo)
 
 ## Contributing
 
