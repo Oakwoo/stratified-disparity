@@ -125,39 +125,140 @@ pip install -e .
 
 ## Usage
 
-### 1. Prepare predictions and metadata
-
-The metric requires model predictions, ground-truth labels, protected group labels, and a stratification variable.
+### Simple Usage: Compute a Single SD Score
 
 ```python
-import pandas as pd
+import numpy as np
+import networkx as nx
 
-from stratified_disparity import StratifiedDisparity
+from stratified_disparity import stratified_disparity
 
-# Example input table
-# Each row can represent a candidate edge, node pair, or evaluation instance.
-df = pd.DataFrame({
-    "y_true": [1, 0, 1, 1, 0],
-    "y_score": [0.91, 0.22, 0.76, 0.64, 0.31],
-    "group": ["A", "B", "A", "B", "A"],
-    "degree": [3, 7, 12, 14, 21],
-})
+# Structural attribute used for stratification
+def bin_by_degree(G, valid_nodes):
+    return [G.degree(n) for n in valid_nodes]
+
+# Disparity metric
+def std(values):
+    return np.std(values, ddof=1)
+
+SD = stratified_disparity(
+    valid_nodes=valid_nodes,
+    acc_list=acc_list,
+    G=G,
+    num_bin=10,
+    bins_function=bin_by_degree,
+    diff_function=std
+)
+
+print("Stratified Disparity:", SD)
 ```
+
+### Inputs
+
+The method requires:
+
+* `valid_nodes`: nodes included in the evaluation.
+* `acc_list`: prediction performance (e.g., accuracy, precision, recall, AUC score) associated with each node.
+* `G`: input network.
+* `num_bin`: number of structural bins.
+* `bins_function`: function used to compute the structural attribute for stratification.
+* `diff_function`: function used to measures performance disparity inside each bin.
+
+### Custom Structural Attributes
+
+Any node-level structural property can be used for stratification.
+
+Example: clustering coefficient
+
+```python
+def bin_by_clustering(G, valid_nodes):
+    cc = nx.clustering(G)
+    return [cc[n] for n in valid_nodes]
+
+SD = stratified_disparity(
+    valid_nodes,
+    acc_list,
+    G,
+    num_bin=10,
+    bins_function=bin_by_clustering,
+    diff_function=std
+)
+```
+
+Example: PageRank
+
+```python
+def bin_by_pagerank(G, valid_nodes):
+    pr = nx.pagerank(G)
+    return [pr[n] for n in valid_nodes]
+```
+
+### Custom Disparity Functions
+
+Any function that maps a list of performance values to a scalar disparity score can be used.
+
+Standard deviation:
+
+```python
+def std(values):
+    return np.std(values, ddof=1)
+```
+
+Range:
+
+```python
+def value_range(values):
+    return max(values) - min(values)
+```
+
+Mean absolute deviation:
+
+```python
+def mad(values):
+    mean = np.mean(values)
+    return np.mean(np.abs(values - mean))
+```
+
+
+### Experiment Usage: Repeated Evaluation and Curve Analysis
+Use the object-oriented API when the graph structure and valid nodes are fixed, but performance scores change across models, epochs, or random seeds.
+
+The Object-oriented interface precomputes and reuses structural attributes and bin assignments, which avoids recomputing the stratification variable for every evaluation.
+
+### 1. Prepare Node-Level Performance Scores
+
+
+```python
+acc_list = [1.0, 0.8, 1.0, 0.94, 0.72, ...]
+```
+Each value in `acc_list` corresponds to a node in valid_nodes.
 
 ### 2. Compute Stratified Disparity
 
 ```python
+import numpy as np
+from stratified_disparity import StratifiedDisparity
+
+def bin_by_degree(G, valid_nodes):
+    return [G.degree(n) for n in valid_nodes]
+
+def std(values):
+    return np.std(values, ddof=1)
+
 sd = StratifiedDisparity(
-    group_col="group",
-    stratify_col="degree",
-    y_true_col="y_true",
-    y_score_col="y_score",
-    metric="precision",
-    diff="std",
+    G=G,
+    valid_nodes=valid_nodes,
+    bins_function=bin_by_degree,
+    diff_function=std,
+    log=True,
 )
 
-curve = sd.compute_curve(df, max_bins=32)
-print(curve.head())
+curve = sd.compute_curve(
+    acc_list=acc_list,
+    max_bins=32,
+)
+
+print(curve)
 ```
 
 Example output:
@@ -195,21 +296,68 @@ ax.figure.savefig("figures/stratified_disparity_curve.png", dpi=300, bbox_inches
 ```
 
 
-## API
+## API Reference
+
+### `stratified_disparity`
+
+```python
+stratified_disparity(
+    valid_nodes,
+    acc_list,
+    G,
+    num_bin,
+    bins_function,
+    diff_function,
+    log=True,
+    data_log=True
+)
+```
+
+Compute Stratified Disparity SD(N) by partitioning nodes into structural bins and measuring performance disparity within each bin.
+
+#### Parameters
+
+| Parameter       | Type             | Description                                                                   |
+| --------------- | ---------------- | ----------------------------------------------------------------------------- |
+| `valid_nodes`   | `list[int]`      | Indices of nodes included in evaluation.                                                 |
+| `acc_list`      | `list[float]`    | Node-level prediction performance values.                                     |
+| `G`             | `networkx.Graph` | Input graph.                                                                  |
+| `num_bin`       | `int`            | Number of structural bins (N).                                                |
+| `bins_function` | `callable`       | Function that returns a structural attribute value for each node.             |
+| `diff_function` | `callable`       | Function that computes disparity within a bin.                                |
+| `log`           | `bool`, optional | Use logarithmic binning if `True`, otherwise linear binning. Default: `True`. |
+| `data_log`      | `bool`, optional | Print intermediate statistics and debugging information. Default: `True`.     |
+
+#### Returns
+
+| Type    | Description                       |
+| ------- | --------------------------------- |
+| `float` | Stratified Disparity score SD(N). |
+
+#### Notes
+
+The computation follows three steps:
+
+1. Compute a structural attribute for each node using `bins_function`.
+2. Partition nodes into `N` bins according to the structural attribute.
+3. Compute within-bin disparity using `diff_function` and aggregate across bins.
+
+When `N=1`, SD(1) reduces to the aggregate disparity without structural stratification.
+
+Increasing `N` reveals whether observed performance disparities are driven by structural imbalance or persist within structurally similar nodes.
+
 
 ### `StratifiedDisparity(...)`
 
 Main class for computing the metric.
 
 ```python
-StratifiedDisparity(
-    group_col: str,
-    stratify_col: str,
-    y_true_col: str,
-    y_score_col: str,
-    metric: str = "precision",
-    diff: str = "std",
-    binning: str = "quantile",
+sd = StratifiedDisparity(
+    G: networkx.Graph,
+    valid_nodes: list[int],
+    bins_function: callable,
+    diff_function: callable,
+    log:bool, optional,
 )
 ```
 
