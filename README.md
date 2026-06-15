@@ -123,9 +123,7 @@ Or install as a local package:
 pip install -e .
 ```
 
-## Usage
-
-### Simple Usage: Compute a Single SD Score
+## Simple Usage: Compute a Single Stratified Disparity Score
 
 ```python
 import numpy as np
@@ -220,7 +218,7 @@ def mad(values):
 ```
 
 
-### Experiment Usage: Repeated Evaluation and Curve Analysis
+## Experiment Usage: Repeated Evaluation and Curve Analysis
 Use the object-oriented API when the graph structure and valid nodes are fixed, but performance scores change across models, epochs, or random seeds.
 
 The Object-oriented interface precomputes and reuses structural attributes and bin assignments, which avoids recomputing the stratification variable for every evaluation.
