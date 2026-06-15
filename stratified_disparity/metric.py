@@ -1,7 +1,7 @@
 import networkx
 import pandas as pd
 
-def stratified_disparity(valid_nodes, acc_list, G, num_bin, bins_function, diff_function, log=True, data_log=True):
+def stratified_disparity(valid_nodes, acc_list, group_labels, G, num_bin, bins_function, diff_function, log=True, data_log=True):
     '''
     Compute Stratified Disparity (SD) by partitioning nodes into N structural bins
     and measuring performance disparity within each bin.
@@ -14,6 +14,9 @@ def stratified_disparity(valid_nodes, acc_list, G, num_bin, bins_function, diff_
     acc_list : list[float]
         Prediction performance (e.g., accuracy, precision, recall, AUC score)
         associated with each valid node.
+
+    group_labels : dictionary
+        Protected attribute associated with each node.
 
     G : networkx.Graph
         Input graph.
@@ -49,12 +52,12 @@ def stratified_disparity(valid_nodes, acc_list, G, num_bin, bins_function, diff_
     acc_dic = {}
     feature_dic = {}
     for i, n in enumerate(valid_nodes):
-        if G.nodes[n]['att'] not in acc_dic.keys():
-            acc_dic[G.nodes[n]['att']] = [acc_list[i]]
-            feature_dic[G.nodes[n]['att']] = [feature_list[i]]
+        if group_labels[n] not in acc_dic.keys():
+            acc_dic[group_labels[n]] = [acc_list[i]]
+            feature_dic[group_labels[n]] = [feature_list[i]]
         else:
-            acc_dic[G.nodes[n]['att']].append(acc_list[i])
-            feature_dic[G.nodes[n]['att']].append(feature_list[i])
+            acc_dic[group_labels[n]].append(acc_list[i])
+            feature_dic[group_labels[n]].append(feature_list[i])
         
     # compute plot step
     if log:
@@ -150,7 +153,7 @@ class StratifiedDisparity:
         self.find_stabilized_point()
         return self
 
-    def score(self, acc_list, num_bin):
+    def score(self, acc_list, group_labels, num_bin):
         """
         Compute SD for one given number of bins.
         """
@@ -165,6 +168,7 @@ class StratifiedDisparity:
         return stratified_disparity(
             valid_nodes=self.valid_nodes,
             acc_list=acc_list,
+            group_labels=group_labels,
             G=self.G,
             num_bin=num_bin,
             bins_function=lambda G, valid_nodes: self.feature_list, # directly fetch from calculated result
@@ -173,7 +177,7 @@ class StratifiedDisparity:
             data_log=self.data_log,
         )
 
-    def compute_curve(self, acc_list, bin_list=None, max_bins=None):
+    def compute_curve(self, acc_list, group_labels, bin_list=None, max_bins=None):
         """
         Compute SD curve over multiple bin numbers.
         """
@@ -192,10 +196,12 @@ class StratifiedDisparity:
             if upper not in bin_list:
                 bin_list.append(upper)
 
+        group_labels = self._resolve_group_labels(group_labels)
+
         records = []
 
         for num_bin in bin_list:
-            sd = self.score(acc_list, num_bin)
+            sd = self.score(acc_list, group_labels, num_bin)
             records.append({
                 "num_bins": num_bin,
                 "stratified_disparity": sd,
@@ -267,6 +273,19 @@ class StratifiedDisparity:
             )
 
         return ax
+        
+    def _resolve_group_labels(self, group_labels):
+        if isinstance(group_labels, str):
+            group_labels = nx.get_node_attributes(self.G, group_labels)
+    
+        if group_labels is None:
+            raise ValueError("group_labels must be provided.")
+    
+        missing = [v for v in self.valid_nodes if v not in group_labels]
+        if missing:
+            raise ValueError(f"Missing group labels for {len(missing)} valid nodes.")
+    
+        return group_labels
 
 
 def compute_step_log_general(feature_dic, num_bin, log=True):

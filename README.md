@@ -142,6 +142,7 @@ def std(values):
 SD = stratified_disparity(
     valid_nodes=valid_nodes,
     acc_list=acc_list,
+    group_labels=group_labels,
     G=G,
     num_bin=10,
     bins_function=bin_by_degree,
@@ -157,6 +158,7 @@ The method requires:
 
 * `valid_nodes`: nodes included in the evaluation.
 * `acc_list`: prediction performance (e.g., accuracy, precision, recall, AUC score) associated with each node.
+* `group_labels`: protected attribute associated with each node.
 * `G`: input network.
 * `num_bin`: number of structural bins.
 * `bins_function`: function used to compute the structural attribute for stratification.
@@ -176,6 +178,7 @@ def bin_by_clustering(G, valid_nodes):
 SD = stratified_disparity(
     valid_nodes,
     acc_list,
+    group_labels,
     G,
     num_bin=10,
     bins_function=bin_by_clustering,
@@ -223,13 +226,14 @@ Use the object-oriented API when the graph structure and valid nodes are fixed, 
 
 The Object-oriented interface precomputes and reuses structural attributes and bin assignments, which avoids recomputing the stratification variable for every evaluation.
 
-### 1. Prepare Node-Level Performance Scores
+### 1. Prepare Node-Level Performance Scores and Protected Attributes
 
 
 ```python
 acc_list = [1.0, 0.8, 1.0, 0.94, 0.72, ...]
+group_labels = {1: 'male', 2: 'female', 3: 'female', ...}
 ```
-Each value in `acc_list` corresponds to a node in valid_nodes.
+Each value in `acc_list` corresponds to a node in `valid_nodes`. `group_labels` is a dictionary that maps each node to its protected attribute.
 
 ### 2. Compute Stratified Disparity
 
@@ -253,6 +257,7 @@ sd = StratifiedDisparity(
 
 curve = sd.compute_curve(
     acc_list=acc_list,
+    group_labels=group_labels,
     max_bins=32,
 )
 
@@ -302,6 +307,7 @@ ax.figure.savefig("figures/stratified_disparity_curve.png", dpi=300, bbox_inches
 stratified_disparity(
     valid_nodes,
     acc_list,
+    group_labels,
     G,
     num_bin,
     bins_function,
@@ -319,6 +325,7 @@ Compute Stratified Disparity SD(N) by partitioning nodes into structural bins an
 | --------------- | ---------------- | ----------------------------------------------------------------------------- |
 | `valid_nodes`   | `list[int]`      | Indices of nodes included in evaluation.                                                 |
 | `acc_list`      | `list[float]`    | Node-level prediction performance values.                                     |
+| `group_labels`      | `dictionary`    | Node-level protected attribute.                                     |
 | `G`             | `networkx.Graph` | Input graph.                                                                  |
 | `num_bin`       | `int`            | Number of structural bins (N).                                                |
 | `bins_function` | `callable`       | Function that returns a structural attribute value for each node.             |
@@ -359,12 +366,14 @@ sd = StratifiedDisparity(
 )
 ```
 
-### `compute_curve(df, max_bins=32)`
+### `compute_curve(df, group_labels, max_bins=32)`
 
 Computes the Stratified Disparity curve over multiple bin counts.
+`group_labels` specifies the protected attribute used for evaluation, either as a node attribute name stored in `G` or as a dictionary that maps each node to its protected attribute.
 
 ```python
-curve = sd.compute_curve(df, max_bins=32)
+curve = sd.compute_curve(df, group_labels, max_bins=32)
+curve = sd.compute_curve(df, 'gender', max_bins=32)
 ```
 
 ### `find_elbow(curve)`
@@ -381,32 +390,6 @@ Plots the SD curve and optionally marks the elbow point.
 
 ```python
 ax = sd.plot_curve(curve, elbow=elbow)
-```
-
-## Examples
-
-Run a minimal example:
-
-```bash
-python examples/run_degree_stratification.py
-```
-
-Run an experiment on a graph dataset:
-
-```bash
-python experiments/run_link_prediction_audit.py \
-  --dataset bowdoin \
-  --predictor jaccard \
-  --stratify degree \
-  --max-bins 32
-```
-
-Generate figures:
-
-```bash
-python scripts/plot_sd_curve.py \
-  --input results/bowdoin_jaccard_degree.csv \
-  --output figures/bowdoin_sd_curve.png
 ```
 
 
@@ -439,7 +422,7 @@ stratified-disparity/
 
 We provide the slides for the ISCS 2026 oral presentation in the `slides/` directory.
 
-- [ISCS 2026 Oral Presentation Slides (PDF)](slides/ISCS_2026_Oral_Presentation_Slides.pdf)
+- [ISCS 2026 Oral Presentation Slides](slides/ISCS_2026_Oral_Presentation_Slides.pdf)
 
 The slides give a concise overview of the motivation, Stratified Disparity metric, experimental setup, and major findings. They are intended as a high-level summary of the paper and can be used together with the code and reproduced results in this repository.
 
