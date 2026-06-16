@@ -286,7 +286,50 @@ class StratifiedDisparity:
             raise ValueError(f"Missing group labels for {len(missing)} valid nodes.")
     
         return group_labels
+        
+    def permutation_baseline(self, acc_list, group_labels, n_perm=20, bin_list=None, max_bins=None, random_state=None, return_permutations=False):
+        rng = np.random.default_rng(random_state)
+        group_labels = self._resolve_group_labels(group_labels)
 
+        if bin_list is None:
+            if not self._is_fitted:
+                self.fit()
+            if max_bins is None:
+                max_bins = self.stabilized_point
+
+            upper = min(max_bins, self.stabilized_point)
+            bin_list = (
+                list(range(1, min(50, upper + 1)))
+                + list(range(50, min(200, upper + 1), 5))
+                + list(range(200, upper + 1, 20))
+            )
+            if upper not in bin_list:
+                bin_list.append(upper)
+
+        perm_curves = []
+
+        labels = [group_labels[v] for v in self.G]
+
+        for _ in range(n_perm):
+            shuffled_values = labels.copy()
+            rng.shuffle(shuffled_values)
+
+            shuffled_labels = dict(zip(list(self.G), shuffled_values))
+
+            curve = self.compute_curve(
+                acc_list=acc_list,
+                group_labels=shuffled_labels,
+                bin_list=bin_list,
+            )
+
+            perm_curves.append(curve)
+
+        baseline = average_curves(perm_curves)
+
+        if return_permutations:
+            return baseline, perm_curves
+    
+        return baseline
 
 def compute_step_log_general(feature_dic, num_bin, log=True):
     feature_list = []
@@ -388,3 +431,23 @@ def compute_estimate_disparity_general(his_result, num_bin, acc_dic, prob, diff_
         esti_Disparity += prob[i] * diff_function(_acc)
     if log: print("estimate Disparity:", esti_Disparity)
     return esti_Disparity
+    
+def average_curves(curves):
+    if len(curves) == 0:
+        raise ValueError("curves must contain at least one DataFrame.")
+
+    base_bins = curves[0]["num_bins"].to_list()
+
+    for curve in curves[1:]:
+        if curve["num_bins"].to_list() != base_bins:
+            raise ValueError("All curves must have the same num_bins values.")
+
+    values = np.vstack([
+        curve["stratified_disparity"].to_numpy()
+        for curve in curves
+    ])
+
+    return pd.DataFrame({
+        "num_bins": base_bins,
+        "stratified_disparity": values.mean(axis=0),
+    })
