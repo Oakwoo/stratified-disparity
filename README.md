@@ -275,7 +275,32 @@ Example output:
 4        16                0.0101
 ```
 
-### 3. Detect the elbow point
+### 3. Permutation Baseline
+
+Fine-grained stratification inevitably introduces statistical noise, as bins with very few samples can exhibit large fluctuations in group-level performance.
+
+To estimate this noise floor, `StratifiedDisparity` provides a built-in permutation baseline that repeatedly shuffles the protected attribute while keeping the graph structure fixed.
+
+```python
+baseline = sd.permutation_baseline(
+    acc_list=acc_list,
+    group_labels=group_labels,
+    max_bins=32,
+    n_perm=20,
+    random_state=42,
+)
+
+denoised_curve = curve.copy()
+denoised_curve["stratified_disparity"] = (
+    curve["stratified_disparity"]
+    - baseline["stratified_disparity"]
+)
+```
+The returned baseline has the same format as `compute_curve()`.
+Only the protected labels are shuffled. The graph structure, structural features, and structural bins remain unchanged.
+This procedure estimates the amount of disparity that can arise purely from random assignment and can be used to interpret or denoise fine-grained Stratified Disparity curves.
+
+### 4. Detect the elbow point
 
 ```python
 elbow = sd.find_elbow(curve)
@@ -291,7 +316,7 @@ Example output:
 }
 ```
 
-### 4. Plot the curve
+### 5. Plot the curve
 
 ```python
 ax = sd.plot_curve(curve, elbow=elbow)
@@ -366,14 +391,28 @@ sd = StratifiedDisparity(
 )
 ```
 
-### `compute_curve(df, group_labels, max_bins=32)`
+### `compute_curve(df, group_labels, bin_list=None, max_bins=32)`
 
 Computes the Stratified Disparity curve over multiple bin counts.
 `group_labels` specifies the protected attribute used for evaluation, either as a node attribute name stored in `G` or as a dictionary that maps each node to its protected attribute.
 
 ```python
-curve = sd.compute_curve(df, group_labels, max_bins=32)
+curve = sd.compute_curve(df, group_labels, bin_list=[1,2,5,10,20,30,50,100,200,300,400,500,600])
 curve = sd.compute_curve(df, 'gender', max_bins=32)
+```
+
+### `permutation_baseline(acc_list, group_labels, bin_list=None, max_bins=32, n_perm=20, random_state=42)`
+
+Estimate the background noise of a Stratified Disparity curve by repeatedly shuffling the protected attribute while keeping the graph structure fixed.
+
+```python
+baseline = sd.permutation_baseline(
+    acc_list=acc_list,
+    group_labels=group_labels,
+    max_bins=32,
+    n_perm=20,
+    random_state=42,
+)
 ```
 
 ### `find_elbow(curve)`
