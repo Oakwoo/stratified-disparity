@@ -49,7 +49,7 @@ def stratified_disparity(valid_nodes, acc_list, group_labels, G, num_bin, bins_f
     feature_list = bins_function(G, valid_nodes)
     
     # sort acc and bin_feature into bins
-    his, his_result = bin_group_performance(valid_nodes, acc_list, feature_list, group_labels, num_bin, log, data_log)
+    his, his_result, labels = bin_group_performance(valid_nodes, acc_list, feature_list, group_labels, num_bin, log, data_log)
     
     # compute prob
     prob = compute_bins_probability(his, acc_dic, num_bin, data_log)
@@ -314,6 +314,48 @@ class StratifiedDisparity:
             return baseline, perm_curves
     
         return baseline
+        
+    def plot_bin_group_performance(self, acc_list, group_labels, num_bin, ax=None):
+        import matplotlib.pyplot as plt
+
+        if not self._is_fitted:
+            self.fit()
+
+        if len(acc_list) != len(self.valid_nodes):
+            raise ValueError(
+                "acc_list must have the same length as valid_nodes."
+            )
+
+        group_labels = self._resolve_group_labels(group_labels)
+    
+        his, his_result, labels = bin_group_performance(self.valid_nodes, acc_list, self.feature_list, group_labels, num_bin, self.log, self.data_log)
+    
+        if ax is None:
+            _, ax = plt.subplots(figsize=(8, 4))
+
+        num_community = len(his_result.keys())
+        # set bar width
+        bar_width = 1/(num_community+1)
+          
+        # set x-asix position
+        r = [[] for i in range(num_community)]
+        r[0] = np.arange(len(his_result[0]))
+        
+        for i in range(1,num_community):
+            r[i] = [x + i*bar_width for x in r[0]]
+        # create bar
+        for i, _label in enumerate(his_result.keys()):
+            ax.bar(r[i], his_result[i], width=bar_width, edgecolor='grey', label='Group '+str(_label))
+        # add plot information
+        ax.set_ylim((0, 1))
+        ax.set_xticks(r[int(num_community/2)])
+        ax.set_xticklabels(labels, rotation=45) # put label in middle
+        ax.set_ylabel("Average performance", fontsize=12, fontweight='bold')
+        ax.set_xlabel("Structure bin", fontsize=12, fontweight='bold')
+        ax.legend()
+        ax.figure.tight_layout()
+    
+        return ax
 
 def compute_step_log_general(feature_dic, num_bin, log=True):
     feature_list = []
@@ -452,7 +494,11 @@ def bin_group_performance(valid_nodes, acc_list, feature_list, group_labels, num
     if log:
         plot_step, max_feature, min_feature = compute_step_log_general(feature_dic, num_bin, data_log)
         his, his_result = compute_avg_acc_bins_log(acc_dic, num_bin, plot_step, feature_dic, min_feature, data_log)
+        label_list_cell = [math.ceil(10**( i * plot_step + min_log)) for i in range(num_bin+1)]
     else:
         plot_step, max_feature, min_feature = compute_step_general(feature_dic, num_bin, data_log)
         his, his_result = compute_avg_acc_bins(acc_dic, num_bin, plot_step, feature_dic, min_feature, data_log)
-    return his, his_result
+        label_list_cell = [math.ceil(i * plot_step + min_log) for i in range(num_bin+1)]
+    
+    labels = [f"{label_list_cell[i]}-{label_list_cell[i+1]-1}" for i in range(len(label_list_cell)-1)]
+    return his, his_result, labels
