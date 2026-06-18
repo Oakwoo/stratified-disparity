@@ -48,25 +48,9 @@ def stratified_disparity(valid_nodes, acc_list, group_labels, G, num_bin, bins_f
     # compute bin feature list for each valid node: feature_list = [ , , ...]
     feature_list = bins_function(G, valid_nodes)
     
-    # sort acc and bin_feature into dictionary
-    acc_dic = {}
-    feature_dic = {}
-    for i, n in enumerate(valid_nodes):
-        if group_labels[n] not in acc_dic.keys():
-            acc_dic[group_labels[n]] = [acc_list[i]]
-            feature_dic[group_labels[n]] = [feature_list[i]]
-        else:
-            acc_dic[group_labels[n]].append(acc_list[i])
-            feature_dic[group_labels[n]].append(feature_list[i])
-        
-    # compute plot step
-    if log:
-        plot_step, max_feature, min_feature = compute_step_log_general(feature_dic, num_bin, data_log)
-        his, his_result = compute_avg_acc_bins_log(acc_dic, num_bin, plot_step, feature_dic, min_feature, data_log)
-    else:
-        plot_step, max_feature, min_feature = compute_step_general(feature_dic, num_bin, data_log)
-        his, his_result = compute_avg_acc_bins(acc_dic, num_bin, plot_step, feature_dic, min_feature, data_log)
-
+    # sort acc and bin_feature into bins
+    his, his_result = bin_group_performance(valid_nodes, acc_list, feature_list, group_labels, num_bin, log, data_log)
+    
     # compute prob
     prob = compute_bins_probability(his, acc_dic, num_bin, data_log)
 
@@ -451,3 +435,24 @@ def average_curves(curves):
         "num_bins": base_bins,
         "stratified_disparity": values.mean(axis=0),
     })
+    
+def bin_group_performance(valid_nodes, acc_list, feature_list, group_labels, num_bin, log, data_log):
+    # sort acc and bin_feature into dictionary
+    acc_dic = {}
+    feature_dic = {}
+    for i, n in enumerate(valid_nodes):
+        if group_labels[n] not in acc_dic.keys():
+            acc_dic[group_labels[n]] = [acc_list[i]]
+            feature_dic[group_labels[n]] = [feature_list[i]]
+        else:
+            acc_dic[group_labels[n]].append(acc_list[i])
+            feature_dic[group_labels[n]].append(feature_list[i])
+        
+    # compute plot step
+    if log:
+        plot_step, max_feature, min_feature = compute_step_log_general(feature_dic, num_bin, data_log)
+        his, his_result = compute_avg_acc_bins_log(acc_dic, num_bin, plot_step, feature_dic, min_feature, data_log)
+    else:
+        plot_step, max_feature, min_feature = compute_step_general(feature_dic, num_bin, data_log)
+        his, his_result = compute_avg_acc_bins(acc_dic, num_bin, plot_step, feature_dic, min_feature, data_log)
+    return his, his_result
