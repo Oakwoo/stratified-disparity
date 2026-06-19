@@ -431,6 +431,13 @@ Plots the SD curve and optionally marks the elbow point.
 ax = sd.plot_curve(curve, elbow=elbow)
 ```
 
+### `plot_bin_group_performance(acc_list=acc_list, group_labels, num_bin)`
+
+Plot the average performance of each protected group within each structural bin.
+
+```python
+ax = sd.plot_bin_group_performance(acc_list=acc_list, group_labels='att', num_bin=8)
+```
 
 
 ## Repository Structure
