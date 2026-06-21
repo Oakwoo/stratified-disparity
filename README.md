@@ -3,7 +3,7 @@
 > Revealing hidden fairness patterns through stratification.
 
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg)](https://github.com/RichardLitt/standard-readme)
-[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <p align="center">
@@ -107,7 +107,7 @@ cd stratified-disparity
 Create an environment:
 
 ```bash
-conda create -n stratified-disparity python=3.9
+conda create -n stratified-disparity python=3.8
 conda activate stratified-disparity
 ```
 
