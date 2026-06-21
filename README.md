@@ -95,6 +95,10 @@ The workflow consists of the following steps:
 6. Repeat the process with different numbers of bins to obtain the Stratified Disparity Curve.
 7. Select the elbow point as the final Stratified Disparity score.
 
+### Quick Start
+
+See [`examples/quick_start.ipynb`](examples/quick_start.ipynb) for an interactive tutorial demonstrating the complete Stratified Disparity workflow.
+
 ## Install
 
 Clone the repository:
