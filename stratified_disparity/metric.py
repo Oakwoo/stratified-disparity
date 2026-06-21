@@ -1,5 +1,8 @@
-import networkx
+import networkx as nx
 import pandas as pd
+import numpy as np
+import math
+from sklearn.impute import KNNImputer
 
 def stratified_disparity(valid_nodes, acc_list, group_labels, G, num_bin, bins_function, diff_function, log=True, data_log=True):
     '''
@@ -52,10 +55,10 @@ def stratified_disparity(valid_nodes, acc_list, group_labels, G, num_bin, bins_f
     his, his_result, labels = bin_group_performance(valid_nodes, acc_list, feature_list, group_labels, num_bin, log, data_log)
     
     # compute prob
-    prob = compute_bins_probability(his, acc_dic, num_bin, data_log)
+    prob = compute_bins_probability(his, num_bin, data_log)
 
     # compute disparity
-    esti_Disparity = compute_estimate_disparity_general(his_result, num_bin, acc_dic, prob, diff_function, data_log)
+    esti_Disparity = compute_estimate_disparity_general(his_result, num_bin, prob, diff_function, data_log)
 
     return esti_Disparity
 
@@ -424,29 +427,29 @@ def compute_avg_acc_bins(acc_dic, num_bin, plot_step, degree_dic, min_log, log=T
                 his_result[k].append(0)
     return his, his_result
 
-def compute_bins_probability(his, acc_dic, num_bin, log=True):
+def compute_bins_probability(his, num_bin, log=True):
     prob = [0 for i in range(num_bin)]
     for i in range(num_bin):
-        for k in list(acc_dic.keys()):
+        for k in list(his.keys()):
             assert num_bin == len(his[k])
             prob[i] += len(his[k][i])
     prob = [i/sum(prob) for i in prob]
     if log: print(prob)
     return prob
 
-def compute_disparity_general(his_result, num_bin, acc_dic, prob, diff_function, log=True):
+def compute_disparity_general(his_result, num_bin, prob, diff_function, log=True):
     # compute new disparity
     Disparity = 0
     for i in range(num_bin):
         # For multi-communities use Variance
-        _acc = [his_result[k][i] for k in range(len(acc_dic.keys()))]
+        _acc = [his_result[k][i] for k in range(len(his_result.keys()))]
         Disparity += prob[i] * diff_function(_acc)
     if log: print("Disparity:", Disparity)
     return Disparity
 
-def compute_estimate_disparity_general(his_result, num_bin, acc_dic, prob, diff_function, log=True):
+def compute_estimate_disparity_general(his_result, num_bin, prob, diff_function, log=True):
     # use KNN Imputer to estimate, it should KNN by each group, not each bin, it makes more sense
-    df = pd.DataFrame([[ his_result[k][i] for k in range(len(acc_dic.keys()))] for i in range(num_bin)])
+    df = pd.DataFrame([[ his_result[k][i] for k in range(len(his_result.keys()))] for i in range(num_bin)])
     df = df.replace(0,None)
     imputer = KNNImputer(n_neighbors=2)
     his_result_re = imputer.fit_transform(df)
@@ -494,11 +497,11 @@ def bin_group_performance(valid_nodes, acc_list, feature_list, group_labels, num
     if log:
         plot_step, max_feature, min_feature = compute_step_log_general(feature_dic, num_bin, data_log)
         his, his_result = compute_avg_acc_bins_log(acc_dic, num_bin, plot_step, feature_dic, min_feature, data_log)
-        label_list_cell = [math.ceil(10**( i * plot_step + min_log)) for i in range(num_bin+1)]
+        label_list_cell = [math.ceil(10**( i * plot_step + min_feature)) for i in range(num_bin+1)]
     else:
         plot_step, max_feature, min_feature = compute_step_general(feature_dic, num_bin, data_log)
         his, his_result = compute_avg_acc_bins(acc_dic, num_bin, plot_step, feature_dic, min_feature, data_log)
-        label_list_cell = [math.ceil(i * plot_step + min_log) for i in range(num_bin+1)]
+        label_list_cell = [math.ceil(i * plot_step + min_feature) for i in range(num_bin+1)]
     
     labels = [f"{label_list_cell[i]}-{label_list_cell[i+1]-1}" for i in range(len(label_list_cell)-1)]
     return his, his_result, labels
