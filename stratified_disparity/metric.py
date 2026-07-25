@@ -321,18 +321,8 @@ class StratifiedDisparity:
     def plot_bin_group_performance(self, acc_list, group_labels, num_bin, ax=None):
         import matplotlib.pyplot as plt
 
-        if not self._is_fitted:
-            self.fit()
+        his, his_result, labels = self.bin_group_performance(acc_list, group_labels, num_bin)
 
-        if len(acc_list) != len(self.valid_nodes):
-            raise ValueError(
-                "acc_list must have the same length as valid_nodes."
-            )
-
-        group_labels = self._resolve_group_labels(group_labels)
-    
-        his, his_result, labels = bin_group_performance(self.valid_nodes, acc_list, self.feature_list, group_labels, num_bin, self.log, self.data_log)
-    
         if ax is None:
             _, ax = plt.subplots(figsize=(8, 4))
 
@@ -359,6 +349,21 @@ class StratifiedDisparity:
         ax.figure.tight_layout()
     
         return ax
+        
+    def bin_group_performance(self, acc_list, group_labels, num_bin):
+        if not self._is_fitted:
+            self.fit()
+
+        if len(acc_list) != len(self.valid_nodes):
+            raise ValueError(
+                "acc_list must have the same length as valid_nodes."
+            )
+
+        group_labels = self._resolve_group_labels(group_labels)
+    
+        his, his_result, labels = bin_group_performance(self.valid_nodes, acc_list, self.feature_list, group_labels, num_bin, self.log, self.data_log)
+    
+        return his, his_result, labels
 
 def compute_step_log_general(feature_dic, num_bin, log=True):
     feature_list = []
