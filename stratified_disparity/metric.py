@@ -295,13 +295,13 @@ class StratifiedDisparity:
 
         perm_curves = []
 
-        labels = [group_labels[v] for v in self.G]
+        labels = [group_labels[v] for v in self.valid_nodes]
 
         for _ in range(n_perm):
             shuffled_values = labels.copy()
             rng.shuffle(shuffled_values)
 
-            shuffled_labels = dict(zip(list(self.G), shuffled_values))
+            shuffled_labels = dict(zip(self.valid_nodes, shuffled_values))
 
             curve = self.compute_curve(
                 acc_list=acc_list,
